@@ -33,7 +33,7 @@ def aplicar_filtro_irritado(frame, mask, iris_info):
     
     # Optimizar suavizado
     blurred_mask = cv2.GaussianBlur(esclera_mask, (15, 15), 0)
-    blurred_mask_float = blurred_mask.astype(np.float32) / 1055.0
+    blurred_mask_float = blurred_mask.astype(np.float32) / 955.0
 
     if texture_loaded and textura is not None:
         for iris in iris_info:

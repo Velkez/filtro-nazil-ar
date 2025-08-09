@@ -1,37 +1,30 @@
 import cv2
 import mediapipe as mp
-import numpy as np
 import time
 from esclera_detector import get_eye_masks_optimized
 from filtro_esclera_aplicador import aplicar_filtro_irritado
 from ui_manager import UIManager
+from flow_manager import FlowManager
+from capture_manager import CaptureManager
 
 # Inicializamos los módulos de MediaPipe
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(
     static_image_mode=False,
-    max_num_faces=4,
+    max_num_faces=4, # Aumentado para detectar un rostro extra, aunque el flujo solo use 3
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5,
     refine_landmarks=True
 )
 
-# Variable global para controlar el estado del filtro
-filtro_activo_global = False
-
-def mouse_callback(event, x, y, flags, param):
-    """Callback para manejar eventos de ratón (activar/desactivar filtro con click)"""
-    global filtro_activo_global
-    if event == cv2.EVENT_LBUTTONDOWN:
-        filtro_activo_global = not filtro_activo_global
-        print(f"Filtro {'activado' if filtro_activo_global else 'desactivado'} por click.")
-
 def main():
-    global filtro_activo_global
+    # Inicializar administradores
+    flow_manager = FlowManager()
+    capture_manager = CaptureManager()
 
     # Crear UI Manager con la imagen del marco
     try:
-        ui = UIManager("../assets/Nazil_MARCO.png")  # Actualizar con ruta real
+        ui = UIManager("../assets/Nazil_MARCO.png")
     except FileNotFoundError as e:
         print(f"Error UI: {e}")
         ui = None
@@ -41,26 +34,23 @@ def main():
         print("Error: No se pudo abrir la cámara.")
         return
 
-    # Configuración de resolución de la cámara
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     
-    # Crear ventana ajustable y configurar callback de ratón
     cv2.namedWindow('Filtro de Esclera', cv2.WINDOW_NORMAL)
+    
+    def mouse_callback(event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            flow_manager.handle_click()
+    
     cv2.setMouseCallback('Filtro de Esclera', mouse_callback)
     
-    # Variables para medir FPS
     prev_frame_time = 0
-    new_frame_time = 0
     font = cv2.FONT_HERSHEY_SIMPLEX
-    
-    # Variables para control de pantalla completa
     fullscreen = False
-    window_position = None
-    window_size = None
     
     print("Presiona 'q' para salir en la ventana.")
-    print("Haz clic en cualquier parte de la pantalla para activar/desactivar el filtro.")
+    print("Haz clic en cualquier parte de la pantalla para seguir el flujo.")
     print("Presiona 'F' para alternar pantalla completa")
     
     while True:
@@ -73,64 +63,92 @@ def main():
         fps = 1/(new_frame_time - prev_frame_time)
         prev_frame_time = new_frame_time
         
-        # Orientación vertical (modo retrato)
         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         frame = cv2.flip(frame, 1)
         
         h, w, _ = frame.shape
         
-        # Procesar en tamaño completo para mejor precisión
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        # Procesar con MediaPipe en el frame completo
         results_face = face_mesh.process(rgb_frame)
+        face_landmarks_list = results_face.multi_face_landmarks or []
         
-        final_frame = frame.copy()
+        # Lógica para reiniciar la captura si se pierde un rostro
+        if flow_manager.state != "INITIAL" and len(face_landmarks_list) < len(flow_manager.tracked_faces):
+            flow_manager.state = "INITIAL"
+            flow_manager.tracked_faces = {}
 
-        if results_face.multi_face_landmarks and filtro_activo_global:
-            for face_id, landmarks_face in enumerate(results_face.multi_face_landmarks):
-                # Usar landmarks directamente sin escalado manual
-                mask, iris_info = get_eye_masks_optimized(final_frame, landmarks_face.landmark)
-                final_frame = aplicar_filtro_irritado(final_frame, mask, iris_info)
+        # Sincronizar el seguimiento de rostros con el estado inicial
+        if flow_manager.state == "INITIAL":
+            flow_manager.track_faces(face_landmarks_list, (w, h))
 
-        # Aplicar UI si está disponible
+        # Determinar si el filtro debe estar activo
+        filtro_activo = flow_manager.get_active_filter_state()
+        
+        display_frame = frame.copy()
+
+        # Aplicar filtro si está activo y a los rostros rastreados
+        if filtro_activo and face_landmarks_list:
+            for face_id, landmarks_face in enumerate(face_landmarks_list):
+                if flow_manager.should_apply_filter_to_face(face_id):
+                    mask, iris_info = get_eye_masks_optimized(display_frame, landmarks_face.landmark)
+                    if mask is not None and iris_info:
+                        display_frame = aplicar_filtro_irritado(display_frame, mask, iris_info)
+        
+        # Manejar captura de pantalla antes de aplicar la UI del flujo
+        if flow_manager.should_capture():
+            capture_frame = frame.copy()
+            
+            # Aplicar filtro en el frame de captura si es necesario
+            if flow_manager.get_capture_type() == "con-nazil" and face_landmarks_list:
+                for face_id, landmarks_face in enumerate(face_landmarks_list):
+                    if flow_manager.should_apply_filter_to_face(face_id):
+                        mask, iris_info = get_eye_masks_optimized(capture_frame, landmarks_face.landmark)
+                        if mask is not None and iris_info:
+                            capture_frame = aplicar_filtro_irritado(capture_frame, mask, iris_info)
+
+            # Aplicar el marco a la captura
+            if ui:
+                capture_frame = ui.apply_frame(capture_frame)
+
+            # Iniciar nueva captura si es el primer paso del flujo
+            if capture_manager.get_captured_image_count() == 0:
+                capture_manager.start_new_flow_capture()
+            
+            capture_manager.capture_frame(capture_frame, filtro_activo, flow_manager.get_capture_type())
+
+        # Aplicar UI principal si está disponible (este es el primer cambio importante)
         if ui:
-            final_frame = ui.apply_frame(final_frame)
-        
-        # Mostrar FPS
-        cv2.putText(final_frame, f"FPS: {int(fps)}", (10, 30), font, 0.7, (100, 255, 0), 2, cv2.LINE_AA)
-        cv2.putText(final_frame, f"Filtro: {'ON' if filtro_activo_global else 'OFF'}", 
-                   (10, 70), font, 0.7, (0, 255, 0) if filtro_activo_global else (0, 0, 255), 2)
-        cv2.putText(final_frame, f"Pantalla: {'Completa' if fullscreen else 'Normal'}", 
-                   (10, 110), font, 0.7, (200, 200, 0), 2)
+            display_frame = ui.apply_frame(display_frame)
 
-        cv2.imshow('Filtro de Esclera', final_frame)
+        # Actualizar el flujo y aplicar la UI (botones, contadores) sobre el marco
+        # Esto asegura que los elementos se vean por encima del marco.
+        display_frame = flow_manager.update(display_frame, face_landmarks_list)
         
-        # Manejar teclas
+        # Mostrar información de debug sobre el marco
+        cv2.putText(display_frame, f"FPS: {int(fps)}", (10, 30), font, 0.7, (100, 255, 0), 2, cv2.LINE_AA)
+        cv2.putText(display_frame, f"Filtro: {'ON' if filtro_activo else 'OFF'}", 
+                    (10, 70), font, 0.7, (0, 255, 0) if filtro_activo else (0, 0, 255), 2)
+        cv2.putText(display_frame, f"Estado: {flow_manager.state}", 
+                    (10, 110), font, 0.7, (255, 255, 0), 2)
+        cv2.putText(display_frame, f"Rostros rastreados: {len(flow_manager.tracked_faces)}",
+                    (10, 150), font, 0.7, (255, 100, 0), 2)
+
+
+        cv2.imshow('Filtro de Esclera', display_frame)
+        
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
         elif key == ord('f') or key == ord('F'):
             fullscreen = not fullscreen
-            
             if fullscreen:
-                # Guardar posición y tamaño actual antes de cambiar
-                window_position = cv2.getWindowImageRect('Filtro de Esclera')
-                
-                # Cambiar a pantalla completa
                 cv2.setWindowProperty('Filtro de Esclera', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             else:
-                # Restaurar tamaño y posición original
                 cv2.setWindowProperty('Filtro de Esclera', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
-                
-                # Restaurar posición y tamaño si estaban guardados
-                if window_position:
-                    x, y, width, height = window_position
-                    cv2.resizeWindow('Filtro de Esclera', width, height)
-                    cv2.moveWindow('Filtro de Esclera', x, y)
 
     cap.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
+
