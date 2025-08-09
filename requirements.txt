@@ -1,0 +1,31 @@
+opencv-contrib-python-headless==4.9.0.80
+numpy==1.26.4
+scipy==1.13.0
+numba==0.59.0
+pywin32==306
+mediapipe @ https://github.com/cansik/mediapipe-windows-build/releases/download/v0.10.0/mediapipe-0.10.0-cp310-cp310-win_amd64.whl
+
+# Controladores alternativos
+# Para NVIDIA:
+nvidia-cudnn-cu12==8.9.5.30
+
+
+# En caso de tener problemas: 
+# # Paso 1: Eliminar el entorno virtual existente
+# deactivate
+# Remove-Item -Recurse -Force venv
+
+# # Paso 2: Crear nuevo entorno virtual
+# python -m venv venv
+
+# # Paso 3: Activar el entorno
+# .\venv-win\Scripts\Activate.ps1
+
+# # Paso 4: Instalar MediaPipe con soporte GPU
+# pip install mediapipe --pre --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+
+# # Paso 5: Instalar otras dependencias
+# pip install opencv-contrib-python-headless==4.9.0.80 numpy==1.26.4 scipy==1.13.0 numba==0.59.0 pywin32==306
+
+# # Paso 6: Verificar instalación
+# python -c "import mediapipe as mp; print('MediaPipe GPU:', mp.solutions.face_mesh.FaceMesh(use_gpu=True)._gpu_enabled)"
