@@ -3,6 +3,7 @@ import time
 import os
 import numpy as np
 import shutil
+from comparative_image_creator import create_comparative_image # Importar el nuevo script
 
 class FlowManager:
     def __init__(self):
@@ -142,9 +143,19 @@ class FlowManager:
         self.captured_images = {}
 
     def finalize_flow(self):
-        """Finaliza el flujo de manera exitosa, manteniendo las fotos."""
+        """Finaliza el flujo de manera exitosa, manteniendo las fotos y creando la comparativa."""
         if self.current_flow_dir and len(self.captured_images) == 2:
             print(f"Flujo completado con éxito. Fotos guardadas en: {self.current_flow_dir}")
+            
+            # Llamar al nuevo script para crear la imagen comparativa
+            # Asegurarse de que las fotos existan antes de llamar a la función
+            path_con_nazil = self.captured_images.get('con-nazil')
+            path_sin_nazil = self.captured_images.get('sin-nazil')
+
+            if path_con_nazil and path_sin_nazil:
+                # Corregir el orden para que "Sin Nazil" esté a la izquierda
+                create_comparative_image(path_sin_nazil, path_con_nazil)
+        
         self.current_flow_dir = None
         self.captured_images = {}
 
@@ -232,15 +243,17 @@ class FlowManager:
     def draw_countdown(self, frame, remaining_time):
         h, w = frame.shape[:2]
         text = f"Foto en: {remaining_time}"
-        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
+        # Se ha cambiado la fuente a TRIPLEX y el grosor a 3
+        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_TRIPLEX, 1, 3)[0]
         text_x = (w - text_size[0]) // 2
         text_y = 150 
-        cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 255), 3)
 
     def draw_capture_message(self, frame):
         h, w = frame.shape[:2]
         text = "¡Foto tomada!"
-        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
+        # Se ha cambiado la fuente a TRIPLEX y el grosor a 3
+        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_TRIPLEX, 1, 3)[0]
         text_x = (w - text_size[0]) // 2
         text_y = 150
-        cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 0, 0), 3)
