@@ -4,8 +4,11 @@ Este proyecto es un filtro de realidad aumentada desarrollado como parte de una 
 
 La aplicación utiliza la cámara web para detectar los rostros de los usuarios y aplica un efecto de "ojos irritados". Luego, simula el efecto del producto mostrando los ojos sin la irritación, creando una imagen comparativa visual del antes y el después.
 
-https://github.com/user-attachments/assets/6141ce16-cbf2-4bb6-87f6-4bec417e9b69
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/9f9320cc-7a68-48f7-8f13-ec5b50ae7465" width="250" height="444" controls></video>
+</div>
 
+[VideoNazil.webm](https://github.com/user-attachments/assets/9f9320cc-7a68-48f7-8f13-ec5b50ae7465)
 
 ## Requisitos
 
