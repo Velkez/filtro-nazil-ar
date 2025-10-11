@@ -48,10 +48,12 @@ def main():
     prev_frame_time = 0
     font = cv2.FONT_HERSHEY_SIMPLEX
     fullscreen = False
-    
+    rotation_state = 1  # 0: sin rotar, 1: 90°, 2: 180°, 3: 270°
+
     print("Presiona 'q' para salir en la ventana.")
     print("Haz clic en cualquier parte de la pantalla para seguir el flujo.")
     print("Presiona 'F' para alternar pantalla completa")
+    print("Presiona 'G' para rotar la cámara")
     
     while True:
         ret, frame = cap.read()
@@ -62,8 +64,16 @@ def main():
         new_frame_time = time.time()
         fps = 1/(new_frame_time - prev_frame_time)
         prev_frame_time = new_frame_time
-        
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
+        # Aplicar rotación según el estado
+        if rotation_state == 1:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation_state == 2:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+        elif rotation_state == 3:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        # Para rotation_state == 0, no rotar
+
         frame = cv2.flip(frame, 1)
         
         h, w, _ = frame.shape
@@ -145,6 +155,8 @@ def main():
                 cv2.setWindowProperty('Filtro de Esclera', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             else:
                 cv2.setWindowProperty('Filtro de Esclera', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+        elif key == ord('g') or key == ord('G'):
+            rotation_state = (rotation_state + 1) % 4
 
     cap.release()
     cv2.destroyAllWindows()

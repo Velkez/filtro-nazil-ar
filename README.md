@@ -58,3 +58,10 @@ python src/filtro_esclera.py
 ```
 
 Esto abrirá una ventana que mostrará la imagen de la cámara. Sigue las instrucciones en pantalla para interactuar con el filtro.
+
+### Controles
+
+- **Clic del mouse:** Seguir el flujo de la aplicación (activar, desactivar, terminar flujo).
+- **Q:** Salir de la aplicación.
+- **F:** Alternar entre modo pantalla completa y ventana normal.
+- **G:** Rotar la vista de la cámara (0°, 90°, 180°, 270°).
