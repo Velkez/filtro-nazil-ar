@@ -8,8 +8,6 @@ La aplicación utiliza la cámara web para detectar los rostros de los usuarios 
   <video src="https://github.com/user-attachments/assets/9f9320cc-7a68-48f7-8f13-ec5b50ae7465" width="250" height="444" controls></video>
 </div>
 
-[VideoNazil.webm](https://github.com/user-attachments/assets/9f9320cc-7a68-48f7-8f13-ec5b50ae7465)
-
 ## Requisitos
 
 ### Hardware
