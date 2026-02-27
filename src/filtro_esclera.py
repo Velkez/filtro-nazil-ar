@@ -34,13 +34,15 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     
-    cv2.namedWindow('Filtro de Esclera', cv2.WINDOW_NORMAL)
+    window_name = 'Filtro de Esclera'
+    cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
+    cv2.moveWindow(window_name, 100, 100)
     
     def mouse_callback(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             flow_manager.handle_click()
     
-    cv2.setMouseCallback('Filtro de Esclera', mouse_callback)
+    cv2.setMouseCallback(window_name, mouse_callback)
     
     prev_frame_time = 0
     frame_idx = 0
@@ -50,6 +52,7 @@ def main():
 
     print("Presiona 'q' para salir en la ventana.")
     print("Haz clic en cualquier parte de la pantalla para seguir el flujo.")
+    print("Tambien puedes presionar 'C' como alternativa al clic.")
     print("Presiona 'F' para alternar pantalla completa")
     print("Presiona 'G' para rotar la cámara")
     
@@ -149,6 +152,9 @@ def main():
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
+        elif key == ord('c') or key == ord('C'):
+            print("[DEBUG] Keyboard click detected!")
+            flow_manager.handle_click()
         elif key == ord('f') or key == ord('F'):
             fullscreen = not fullscreen
             if fullscreen:

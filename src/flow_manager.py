@@ -42,17 +42,15 @@ class FlowManager:
 
     def handle_click(self):
         current_time = time.time()
-        # Debounce para evitar clics múltiples
-        if current_time - self.last_click_time < 1.0:
-            return
-        
         self.last_click_time = current_time
+        print(f"[DEBUG] Click detectado, estado: {self.state}")
 
         if self.state == "INITIAL":
             # El primer clic inicia un nuevo flujo, crea la carpeta
             self.state = "FILTER_ON_COUNTDOWN"
             self.countdown_start = current_time
             self.start_new_flow()
+            print(f"[DEBUG] Cambiado a FILTER_ON_COUNTDOWN, tracked_faces: {self.tracked_faces}")
         elif self.state == "FILTER_ON_TAKEN":
             # El segundo clic va a la cuenta regresiva sin filtro
             self.state = "FILTER_OFF_COUNTDOWN"
