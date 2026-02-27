@@ -115,7 +115,7 @@ def main():
             if flow_manager.get_capture_type() == "con-nazil" and face_landmarks_list:
                 for face_id, landmarks_face in enumerate(face_landmarks_list):
                     if flow_manager.should_apply_filter_to_face(face_id):
-                        mask, iris_info = get_eye_masks_optimized(capture_frame, landmarks_face)
+                        mask, iris_info = get_eye_masks_optimized(capture_frame, landmarks_face.landmark)
                         if mask is not None and iris_info:
                             capture_frame = aplicar_filtro_irritado(capture_frame, mask, iris_info)
 
