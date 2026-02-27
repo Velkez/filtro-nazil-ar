@@ -38,7 +38,8 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     
     window_name = 'Filtro de Esclera'
-    cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(window_name, 1280, 720)
     cv2.moveWindow(window_name, 100, 100)
     
     def mouse_callback(event, x, y, flags, param):
