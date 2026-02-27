@@ -204,7 +204,7 @@ class FlowManager:
                 continue
 
             # Calcular el tamaño del rostro para estimar la distancia
-            x_coords = [landmark.x for landmark in face.landmark]
+            x_coords = [landmark.x for landmark in face]
             face_width = (max(x_coords) - min(x_coords)) * frame_size[0]
 
             # Umbral de tamaño para ~1.5m (ajustar si es necesario)

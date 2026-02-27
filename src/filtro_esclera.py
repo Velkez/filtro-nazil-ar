@@ -1,21 +1,18 @@
 import cv2
 import mediapipe as mp
 import time
+import os
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 from esclera_detector import get_eye_masks_optimized
 from filtro_esclera_aplicador import aplicar_filtro_irritado
 from ui_manager import UIManager
 from flow_manager import FlowManager
 from capture_manager import CaptureManager
 
-# Inicializamos los módulos de MediaPipe
-mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(
-    static_image_mode=False,
-    max_num_faces=4, # Aumentado para detectar un rostro extra, aunque el flujo solo use 3
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5,
-    refine_landmarks=True
-)
+base_options = python.BaseOptions(model_asset_path=os.path.join(os.path.dirname(__file__), '..', 'models', 'face_landmarker_v2.task'))
+options = vision.FaceLandmarkerOptions(base_options=base_options, running_mode=vision.RunningMode.VIDEO)
+face_landmarker = vision.FaceLandmarker.create_from_options(options)
 
 def main():
     # Inicializar administradores
@@ -46,6 +43,7 @@ def main():
     cv2.setMouseCallback('Filtro de Esclera', mouse_callback)
     
     prev_frame_time = 0
+    frame_idx = 0
     font = cv2.FONT_HERSHEY_SIMPLEX
     fullscreen = False
     rotation_state = 1  # 0: sin rotar, 1: 90°, 2: 180°, 3: 270°
@@ -79,8 +77,10 @@ def main():
         h, w, _ = frame.shape
         
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results_face = face_mesh.process(rgb_frame)
-        face_landmarks_list = results_face.multi_face_landmarks or []
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        result = face_landmarker.detect_for_video(mp_image, frame_idx)
+        face_landmarks_list = result.face_landmarks or []
+        frame_idx += 1
         
         # Lógica para reiniciar la captura si se pierde un rostro
         if flow_manager.state != "INITIAL" and len(face_landmarks_list) < len(flow_manager.tracked_faces):
@@ -100,7 +100,7 @@ def main():
         if filtro_activo and face_landmarks_list:
             for face_id, landmarks_face in enumerate(face_landmarks_list):
                 if flow_manager.should_apply_filter_to_face(face_id):
-                    mask, iris_info = get_eye_masks_optimized(display_frame, landmarks_face.landmark)
+                    mask, iris_info = get_eye_masks_optimized(display_frame, landmarks_face)
                     if mask is not None and iris_info:
                         display_frame = aplicar_filtro_irritado(display_frame, mask, iris_info)
         
@@ -112,7 +112,7 @@ def main():
             if flow_manager.get_capture_type() == "con-nazil" and face_landmarks_list:
                 for face_id, landmarks_face in enumerate(face_landmarks_list):
                     if flow_manager.should_apply_filter_to_face(face_id):
-                        mask, iris_info = get_eye_masks_optimized(capture_frame, landmarks_face.landmark)
+                        mask, iris_info = get_eye_masks_optimized(capture_frame, landmarks_face)
                         if mask is not None and iris_info:
                             capture_frame = aplicar_filtro_irritado(capture_frame, mask, iris_info)
 
